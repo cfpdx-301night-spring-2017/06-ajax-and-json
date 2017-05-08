@@ -50,13 +50,48 @@ Article.fetchAll = function() {
     // When rawData is already in localStorage,
     // we can load it with the .loadAll function above,
     // and then render the index page (using the proper method on the articleView object).
-    Article.loadAll(?); //TODO: What do we need to pass in to Article.loadAll()?
-    //TODO: What method do we call to render the index page?
+    console.log('local storage already exists');
+    //TODO: What do we need to pass in to Article.loadAll()?
+    Article.loadAll(JSON.parse(localStorage.rawData));
   } else {
     // TODO: When we don't already have the rawData,
     // we need to retrieve the JSON file from the server with AJAX (which jQuery method is best for this?),
     // cache it in localStorage so we can skip the server call next time,
     // then load all the data into Article.all with the .loadAll function above,
     // and then render the index page.
+    $.getJSON('data/hackerIpsum.json', function(json) {
+      console.log('local storage does not exist');
+      console.log('raw data: ', json);
+      localStorage.setItem('rawData', JSON.stringify(json));
+      console.log('local storage created');
+    });
   }
+  //TODO: What method do we call to render the index page?
+  articleView.initIndexPage();
+}
+
+Article.checkETag = function() {
+  // get etag already in local storage
+  var existingEtag = localStorage.getItem('ETAG');
+  console.log('existing e tag: ', existingEtag);
+  var etag;
+
+  $.ajax({
+    type: 'HEAD',
+    url: 'data/hackerIpsum.json',
+    success: function(data, message, xhr) {
+      etag = xhr.getResponseHeader('ETag');
+      console.log('e tag:', etag);
+      // check if etg is not null and diff
+      if (etag !== existingEtag) {
+        // kill the old local storage
+        localStorage.removeItem('rawData');
+        console.log('removed raw data from local storage');
+      }
+      // set the etag
+      localStorage.setItem('ETAG', etag);
+      // create a new local storage from current data
+      Article.fetchAll();
+    }
+  });
 }
